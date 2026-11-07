@@ -45,9 +45,9 @@ curl -fsSL --retry 3 -o "${work}/checksums.txt" "${base_url}/checksums.txt"
 expected="$(awk -v f="$archive" '$2 == f || $2 == "*" f {print $1}' "${work}/checksums.txt" | head -n 1)"
 [ -n "$expected" ] || { echo "::error::setup-sendio: no checksum for ${archive}"; exit 1; }
 if command -v sha256sum >/dev/null 2>&1; then
-  actual="$(sha256sum "${work}/${archive}" | awk '{print $1}')"
+  actual="$(sha256sum < "${work}/${archive}" | awk '{print $1}')" # stdin: no file name, so Git Bash on Windows prints no leading backslash
 else
-  actual="$(shasum -a 256 "${work}/${archive}" | awk '{print $1}')"
+  actual="$(shasum -a 256 < "${work}/${archive}" | awk '{print $1}')"
 fi
 if [ "$expected" != "$actual" ]; then
   echo "::error::setup-sendio: checksum mismatch for ${archive} (expected ${expected}, got ${actual})"
