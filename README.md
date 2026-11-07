@@ -5,7 +5,7 @@ Linux, macOS or Windows runner (x64 or ARM64), verifies the release checksum,
 and puts `sendio` on `PATH`.
 
 ```yaml
-- uses: send-io/setup-sendio@v1 # repo name not final until the Marketplace release
+- uses: send-io/setup-sendio@v1
   id: sendio
   with:
     version: latest # or e.g. 1.2.3
