@@ -1,0 +1,24 @@
+# When a vX.Y.Z release is published on the action's public repo, moves the
+# major tag (v1 for v1.4.2) to it, so `uses: send-io/setup-sendio@v1` always
+# gets the newest v1. Marketplace listing is a checkbox on the release page.
+
+name: Move major tag
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Point the major tag at this release
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a vX.Y.Z tag: $tag"; exit 0; }
+          major="${tag%%.*}"
+          git tag -f "$major" "$tag"
+          git push -f origin "refs/tags/$major"

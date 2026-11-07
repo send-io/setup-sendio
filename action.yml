@@ -1,0 +1,60 @@
+name: setup-sendio
+description: Install the send.io CLI (sendio) on a GitHub Actions runner and optionally configure an API key.
+author: send.io
+branding:
+  icon: send
+  color: blue
+
+inputs:
+  version:
+    description: sendio version to install, e.g. "1.2.3" or "latest".
+    required: false
+    default: latest
+  api-key:
+    description: send.io API key. Exported (masked) as SENDIO_API_KEY for later steps.
+    required: false
+    default: ""
+  repo:
+    description: GitHub owner/name that hosts sendio releases.
+    required: false
+    default: send-io/cli
+  github-token:
+    description: Token used for the GitHub API "latest release" lookup (avoids anonymous rate limits).
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  version:
+    description: The sendio version that was installed.
+    value: ${{ steps.install.outputs.version }}
+  path:
+    description: Path to the installed sendio binary.
+    value: ${{ steps.install.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    - id: install
+      shell: bash
+      env:
+        # Inputs go through env, never inline ${{ }} in the script, so they
+        # cannot inject shell.
+        SETUP_SENDIO_VERSION: ${{ inputs.version }}
+        SETUP_SENDIO_REPO: ${{ inputs.repo }}
+        SETUP_SENDIO_TOKEN: ${{ inputs.github-token }}
+        SETUP_SENDIO_RUNNER_OS: ${{ runner.os }}
+        SETUP_SENDIO_RUNNER_ARCH: ${{ runner.arch }}
+      run: bash "$GITHUB_ACTION_PATH/setup.sh"
+
+    - name: Configure API key
+      if: ${{ inputs.api-key != '' }}
+      shell: bash
+      env:
+        SETUP_SENDIO_API_KEY: ${{ inputs.api-key }}
+      run: |
+        echo "::add-mask::${SETUP_SENDIO_API_KEY}"
+        {
+          echo "SENDIO_API_KEY<<__SENDIO_EOF__"
+          echo "${SETUP_SENDIO_API_KEY}"
+          echo "__SENDIO_EOF__"
+        } >> "$GITHUB_ENV"

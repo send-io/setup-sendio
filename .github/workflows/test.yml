@@ -1,0 +1,36 @@
+# Runs the action itself on every push, on Linux, macOS and Windows, and
+# checks that the installed sendio works. Needs at least one CLI release on
+# send-io/cli. The send step runs only when the repository has the secret
+# SENDIO_API_KEY (a key of a separate test workspace, never one in real use)
+# and the variable SENDIO_TEST_FROM (an address on that workspace's verified
+# domain); it sends to the delivered simulator address.
+
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: sendio
+        uses: ./
+        with:
+          api-key: ${{ secrets.SENDIO_API_KEY }}
+      - shell: bash
+        run: |
+          sendio --version
+          test -n "${{ steps.sendio.outputs.version }}"
+          test -x "${{ steps.sendio.outputs.path }}" || test -f "${{ steps.sendio.outputs.path }}"
+      - if: ${{ env.SENDIO_API_KEY != '' && vars.SENDIO_TEST_FROM != '' && matrix.os == 'ubuntu-latest' }}
+        shell: bash
+        run: |
+          sendio emails send --from "${{ vars.SENDIO_TEST_FROM }}" --to delivered@send.io \
+            --subject "setup-sendio test ${GITHUB_SHA::7}" --text "From the action's test workflow." \
+            --wait delivered
